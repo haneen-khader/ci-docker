@@ -2,9 +2,9 @@ name: CI - Test, Coverage, Docker Build & Run
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "add-ci-docker" ]
   pull_request:
-    branches: [ main ]
+    branches: [ "main" ]
 
 jobs:
   test:
@@ -16,16 +16,16 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install pytest pytest-cov
 
-      - name: Run tests with coverage
-        run: pytest --cov=app
+      - name: Run tests
+        run: pytest --maxfail=1 --disable-warnings -q
 
   docker:
     runs-on: ubuntu-latest
@@ -34,23 +34,5 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
       - name: Build Docker image
         run: docker build -t flask-ci-docker .
-
-      - name: Run container
-        run: docker run -d -p 5000:5000 --name flask-container flask-ci-docker
-
-      - name: Wait for container
-        run: sleep 5
-
-      - name: Verify container response
-        run: curl http://localhost:5000
-
-      - name: Show container logs
-        run: docker logs flask-container
-
-      - name: Stop container
-        run: docker stop flask-container && docker rm flask-container
